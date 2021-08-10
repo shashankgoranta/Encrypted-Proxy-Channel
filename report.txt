@@ -1,0 +1,53 @@
+PBPROXY implementation:
+
+Implemented two sockets for  making two connections between three endpoints. 
+Socket 1 : pbproxyc (client) <--> pbproxys(server)
+Socket 2 : pbproxys (server) <--> destination server(sshd or nc)
+
+Basic use cases:
+Socket1: bidirectional communication between pbproxyc and pbproxys.
+Using net package and connection objects we can achieve bidirectional communication.
+Go routines will continuously read and write data using buffers from both the ends seamlessly.
+When the client is disconnected the server will stay active and keeps listening on the given port.
+Multiple connections can be made through the pbproxy server at the same time.
+
+Socket2: bidirectional communication between pbproxys and destination server(sshd or nc).
+Using net package and connection objects we can achieve bidirectional communication.
+Go routines will continuously read and write data using buffers from both the ends seamlessly.
+When destination server is disconnected the pbproxy server will stay active and keeps listening on the given port.
+
+Internal Implementation of sockets:
+Whenever data shows up in a connection object. Then we read it into a buffer and trim the buffer to desired buffered length(empty slice will be removed).
+After reading to buffer then we either write the buffer data to another connection or write to stdout.
+Used go routines and for loops to read for the buffers continuously.
+
+Encryption/Decryption implementation:
+stdin to pbproxy client -> Data gets encrypted at pbproxy client -> encrypted Data will be sent to pbproxy server -> pbproxys decrypts the data using same key -> relays the decrypted data to destination server
+data from destination server ->  Data gets encrypted at pbproxy Server -> encrypted Data will be sent to pbproxy client -> pbproxyc decrypts the data using same key -> Relays the decrypted data to stdout
+
+Internal  implementation of encryption/decryption:
+encrypt:
+nonce: generating a random nonce with noncesize
+used a constant salt to generate pbkdf2 key from passphrase.
+using nonce and key generate ciphertext using aesgcm.Seal(...).
+append the nonce to the ciphertext. and then send nonce+ciphertext.
+decrypt:
+slice the received ciphertext till nonce length for nonce and after that for ciphertext.
+we have nonce, ciphertext and key(generated using pbkdf2 from the passphrase).
+using above three we can decrypt using aesgcm.Open(...).
+
+
+Able to run the following Test cases successfully:
+(stdin or ssh)<-->pbproxyc<-->pbproxys<-->destination(sshd or netcat)
+->input at pbproxyc and data shows at netcat, could see encrypted data in tcpdump
+->input at netcat and data shows at pbproxyc, could see encrypted data in tcpdump
+->cat a file and pipe to pbproxyc and data shows at netcat, could see encrypted data in tcpdump
+-> echo something at pbproxyc and data shows at netcat, could see encrypted data in tcpdump
+-> disconnect pbproxyc and pbproxys stays alive
+-> able to reconnect from same host after disconnecting
+-> able to reconnect from different client after disconnecting
+-> able to connect to ssh of destination using command ssh -o "ProxyCommand go run pbproxy.go -p mykey destinationaddr 2222" localhost, could see encrypted data in tcpdump
+-> able to connect multiple ssh clients with single pbproxys
+-> able to run all the ssh commands once the connection is established, could see encrypted data in tcpdump
+
+
