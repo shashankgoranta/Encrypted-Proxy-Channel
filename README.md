@@ -37,6 +37,4 @@ netcat.
 
 data flow:
 
-ssh <--stdin/stdout--> pbproxy-c <--socket 1--> pbproxy-s <--socket 2--> sshd
-\______________________________/                \___________________________/
-             client                                        server           
+ssh <--stdin/stdout--> pbproxy-c <--socket 1--> pbproxy-s <--socket 2--> sshd     
