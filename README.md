@@ -1,6 +1,5 @@
 # Encrypted-Proxy-Channel
-The tool "plugboard" proxy is for adding an extra layer of protection to publicly accessible network services. The program will
-be written in Go using the Crypto library.
+The tool "plugboard" proxy is for adding an extra layer of protection to publicly accessible network services. The program is written in Go using the Crypto library.
 
 Consider for example the case of an SSH server with a public IP address. No
 matter how securely the server has been configured and how strong the keys
